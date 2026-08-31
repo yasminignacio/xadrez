@@ -3,25 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trabalho Prático: Rhythm Hero 2D</title>
+    <title>Trabalho Acadêmico: Xadrez Canvas 2D</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="game-container">
         <header>
-            <h1>Neon Rhythm Hero</h1>
+            <h1>Xadrez Acadêmico</h1>
             <div id="hud">
-                <div>Pontos: <strong id="score-val">0</strong></div>
-                <div>Combo: <strong id="combo-val">0</strong></div>
+                Turno: <strong id="turn-val">Brancas</strong>
             </div>
         </header>
 
-        <!-- Tela de renderização do jogo -->
-        <canvas id="rhythmCanvas" width="400" height="500"></canvas>
+        <!-- Canvas onde o tabuleiro e as peças são desenhados -->
+        <canvas id="chessCanvas" width="480" height="480"></canvas>
 
         <footer>
-            <p><strong>Controles:</strong> Pressione as teclas <strong>A</strong>, <strong>S</strong>, <strong>D</strong> ou <strong>F</strong> no momento exato!</p>
+            <p id="log-box">Clique em uma peça para selecionar, depois no destino para mover.</p>
         </footer>
     </div>
 

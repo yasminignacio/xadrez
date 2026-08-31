@@ -1,186 +1,151 @@
-const canvas = document.getElementById('rhythmCanvas');
+const canvas = document.getElementById('chessCanvas');
 const ctx = canvas.getContext('2d');
-const scoreVal = document.getElementById('score-val');
-const comboVal = document.getElementById('combo-val');
+const turnVal = document.getElementById('turn-val');
+const logBox = document.getElementById('log-box');
 
-// Estados do Jogo
-let score = 0;
-let combo = 0;
-let gameOver = false;
-let gameFrame = 0;
+const boardSize = 8;
+const tileSize = canvas.width / boardSize;
 
-// Configuração das 4 pistas de notas (A, S, D, F)
-const lanes = [
-    { key: 'KeyA', x: 25, color: '#ff0055', label: 'A' },
-    { key: 'KeyS', x: 125, color: '#00ffcc', label: 'S' },
-    { key: 'KeyD', x: 225, color: '#ffcc00', label: 'D' },
-    { key: 'KeyF', x: 325, color: '#a855f7', label: 'F' }
+let currentTurn = 'W'; // 'W' para Brancas, 'B' para Pretas
+let selectedPiece = null; // Guarda {r, c} da peça selecionada
+
+// Símbolos Unicode das peças de xadrez
+const piecesSymbols = {
+    'W_R': '♜', 'W_N': '♞', 'W_B': '♝', 'W_Q': '♛', 'W_K': '♚', 'W_P': '♟',
+    'B_R': '♜', 'B_N': '♞', 'B_B': '♝', 'B_Q': '♛', 'B_K': '♚', 'B_P': '♟'
+};
+
+// Matriz do Tabuleiro Inicial (Linha, Coluna)
+let board = [
+    ['B_R', 'B_N', 'B_B', 'B_Q', 'B_K', 'B_B', 'B_N', 'B_R'],
+    ['B_P', 'B_P', 'B_P', 'B_P', 'B_P', 'B_P', 'B_P', 'B_P'],
+    ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['W_P', 'W_P', 'W_P', 'W_P', 'W_P', 'W_P', 'W_P', 'W_P'],
+    ['W_R', 'W_N', 'W_B', 'W_Q', 'W_K', 'W_B', 'W_N', 'W_R']
 ];
 
-const laneWidth = 50;
-const targetY = canvas.height - 60; // Linha de acerto perfeita
-const targetHeight = 15;
+// --- DESENHO GRÁFICO ---
+function drawBoard() {
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+            // Alterna cores das casas (Clara / Escura)
+            ctx.fillStyle = (r + c) % 2 === 0 ? '#eeeed2' : '#769656';
+            ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
 
-// Lista de notas ativas que descem pela tela
-let notes = [];
+            // Destaca visualmente a peça selecionada
+            if (selectedPiece && selectedPiece.r === r && selectedPiece.c === c) {
+                ctx.fillStyle = 'rgba(255, 235, 59, 0.5)';
+                ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
+            }
 
-// API Web Audio Nativa (Gera som sintetizado via matemática pura, sem arquivos)
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            // Renderiza o caractere Unicode da Peça se a casa não estiver vazia
+            const piece = board[r][c];
+            if (piece) {
+                ctx.fillStyle = piece.startsWith('W') ? '#ffffff' : '#000000';
+                
+                // Aplica contorno sutil nas peças pretas para destacar no fundo verde escuro
+                if (piece.startsWith('B')) {
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1;
+                    ctx.font = '42px sans-serif';
+                    ctx.strokeText(piecesSymbols[piece], c * tileSize + 8, r * tileSize + 44);
+                }
 
-function playTone(freq) {
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+                ctx.font = '42px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'alpha';
+                ctx.fillText(piecesSymbols[piece], c * tileSize + 8, r * tileSize + 44);
+            }
+        }
     }
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    osc.type = 'triangle'; // Tipo de onda retrô suave
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15); // Efeito fade-out rápido
-    
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.15);
 }
 
-// Escutador de Teclado estável
-window.addEventListener('keydown', (e) => {
-    if (gameOver && e.code === 'Space') {
-        resetGame();
-        return;
+// --- REGRAS BÁSICAS DE MOVIMENTAÇÃO (Simplificada para Escopo Escolar) ---
+function isValidMove(fromR, fromC, toR, toC, piece) {
+    const color = piece.split('_')[0];
+    const type = piece.split('_')[1];
+    const target = board[toR][toC];
+
+    // Impedir de capturar uma peça da mesma cor
+    if (target && target.startsWith(color)) return false;
+
+    const dr = toR - fromR;
+    const dc = toC - fromC;
+
+    switch (type) {
+        case 'P': // Peão (Movimento básico para frente)
+            const direction = color === 'W' ? -1 : 1;
+            // Avanço simples de 1 casa vazia
+            if (dc === 0 && dr === direction && !target) return true;
+            // Avanço duplo inicial
+            if (dc === 0 && dr === 2 * direction && ((color === 'W' && fromR === 6) || (color === 'B' && fromR === 1)) && !target) return true;
+            // Captura diagonal
+            if (Math.abs(dc) === 1 && dr === direction && target) return true;
+            return false;
+
+        case 'R': // Torre (Linhas retas)
+            return (dr === 0 || dc === 0);
+
+        case 'B': // Bispo (Diagonais)
+            return Math.abs(dr) === Math.abs(dc);
+
+        case 'N': // Cavalo (Formato de L)
+            return (Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2);
+
+        case 'Q': // Rainha (Torre + Bispo)
+            return (dr === 0 || dc === 0) || Math.abs(dr) === Math.abs(dc);
+
+        case 'K': // Rei (1 casa para qualquer direção)
+            return Math.abs(dr) <= 1 && Math.abs(dc) <= 1;
+    }
+    return false;
+}
+
+// --- CAPTURA DE INTERAÇÕES (CLIQUE) ---
+canvas.addEventListener('click', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Converte os pixels clicados em Índices da Matriz [Linha][Coluna]
+    const c = Math.floor(x / tileSize);
+    const r = Math.floor(y / tileSize);
+
+    const clickedPiece = board[r][c];
+
+    if (selectedPiece === null) {
+        // Primeira fase: Selecionar a peça do jogador do turno atual
+        if (clickedPiece && clickedPiece.startsWith(currentTurn)) {
+            selectedPiece = { r, c };
+            logBox.innerText = `Peça selecionada. Escolha a casa de destino.`;
+        } else {
+            logBox.innerText = `Não é sua vez ou a casa está vazia!`;
+        }
+    } else {
+        // Segunda fase: Mover a peça selecionada para o local escolhido
+        const fromPiece = board[selectedPiece.r][selectedPiece.c];
+
+        if (isValidMove(selectedPiece.r, selectedPiece.c, r, c, fromPiece)) {
+            // Executa o movimento alterando a matriz de dados
+            board[r][c] = fromPiece;
+            board[selectedPiece.r][selectedPiece.c] = '';
+
+            // Inverte o turno do jogo
+            currentTurn = currentTurn === 'W' ? 'B' : 'W';
+            turnVal.innerText = currentTurn === 'W' ? 'Brancas' : 'Pretas';
+            logBox.innerText = `Movimento realizado com sucesso!`;
+        } else {
+            logBox.innerText = `Movimento inválido! Seleção cancelada.`;
+        }
+        
+        selectedPiece = null; // Limpa a seleção para a próxima jogada
     }
 
-    // Procura se a tecla digitada corresponde a uma das pistas
-    const laneIndex = lanes.findIndex(l => l.key === e.code);
-    if (laneIndex !== -1) {
-        checkHit(laneIndex);
-    }
+    drawBoard(); // Redesenha a tela atualizada
 });
 
-// Verifica se há alguma nota na área de acerto da pista pressionada
-function checkHit(laneIndex) {
-    let hitDetected = false;
-
-    for (let i = 0; i < notes.length; i++) {
-        if (notes[i].lane === laneIndex) {
-            // Calcula a distância até o alvo de acerto perfeito
-            const distance = Math.abs(notes[i].y - targetY);
-            
-            if (distance < 25) { // Janela de acerto aceitável
-                notes.splice(i, 1);
-                score += 10 + (combo * 2); // Multiplicador de combo simples
-                combo++;
-                scoreVal.innerText = score;
-                comboVal.innerText = combo;
-                
-                // Toca notas musicais diferentes dependendo da pista
-                const frequencies = [261.63, 293.66, 329.63, 349.23]; // Dó, Ré, Mi, Fá
-                playTone(frequencies[laneIndex]);
-                
-                hitDetected = true;
-                break;
-            }
-        }
-    }
-
-    if (!hitDetected) {
-        combo = 0; // Errou a sincronia zera o combo
-        comboVal.innerText = combo;
-    }
-}
-
-// --- ENGINE LOOP: ATUALIZAÇÕES ---
-function update() {
-    if (gameOver) return;
-
-    gameFrame++;
-
-    // Cria notas em tempos intercalados aleatórios baseados no ritmo
-    if (gameFrame % 45 === 0) {
-        const randomLane = Math.floor(Math.random() * 4);
-        notes.push({
-            lane: randomLane,
-            y: -20,
-            speed: 5
-        });
-    }
-
-    // Movimentação das notas de cima para baixo
-    for (let i = notes.length - 1; i >= 0; i--) {
-        notes[i].y += notes[i].speed;
-
-        // Se passar da linha de fundo da tela, o jogador perde o combo
-        if (notes[i].y > canvas.height) {
-            notes.splice(i, 1);
-            combo = 0;
-            comboVal.innerText = combo;
-            
-            // Condição simples de derrota se deixar passar muitas de forma consecutiva
-            if (score > 100 && combo === 0 && Math.random() < 0.02) {
-                // Sistema tolerante, mas inserido para fins de encerramento acadêmico
-            }
-        }
-    }
-}
-
-// --- ENGINE LOOP: RENDERIZADOR DIGITAL ---
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 1. Desenha as linhas guias verticais das 4 pistas
-    lanes.forEach((lane, idx) => {
-        ctx.strokeStyle = '#1a1a3a';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(lane.x, 0, laneWidth, canvas.height);
-
-        // Alvos de toque na base na cor neon fosca
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-        ctx.fillRect(lane.x, targetY, laneWidth, targetHeight);
-        ctx.strokeStyle = lane.color;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(lane.x, targetY, laneWidth, targetHeight);
-
-        // Desenha a letra guia embaixo de cada trilha
-        ctx.fillStyle = '#777799';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(lane.label, lane.x + laneWidth / 2, targetY + 32);
-    });
-
-    // 2. Desenha as Notas Musicais Neon Descendentes
-    notes.forEach(note => {
-        const lane = lanes[note.lane];
-        ctx.fillStyle = lane.color;
-        
-        // Efeito visual brilhante
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = lane.color;
-        
-        ctx.fillRect(lane.x + 2, note.y, laneWidth - 4, 12);
-        
-        // Desativa a sombra logo após desenhar para não quebrar o resto dos elementos
-        ctx.shadowBlur = 0;
-    });
-}
-
-function resetGame() {
-    score = 0;
-    combo = 0;
-    gameOver = false;
-    notes = [];
-    gameFrame = 0;
-    scoreVal.innerText = score;
-    comboVal.innerText = combo;
-}
-
-function gameLoop() {
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
-}
-
-gameLoop();
+// Inicialização Gráfica
+drawBoard();
