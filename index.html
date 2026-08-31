@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trabalho Prático: Tower Defense Game</title>
+    <title>Trabalho Prático: Memory Combat RPG</title>
     <!-- Vinculação do arquivo CSS separado -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -11,20 +11,38 @@
 
     <div id="game-container">
         <header>
-            <h1>Defesa de Torre - Projeto de Game</h1>
-            <div id="hud">
-                <div class="hud-item">Vida: <span id="life-val">20</span></div>
-                <div class="hud-item">Ouro: $<span id="gold-val">150</span></div>
-                <div class="hud-item">Onda: <span id="wave-val">1</span></div>
-            </div>
+            <h1>Memory RPG Battle</h1>
+            <p>Combine os pares de cartas para atacar o monstro antes que sua vida acabe!</p>
         </header>
 
-        <!-- Tela de renderização gráfica do jogo -->
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <!-- Painel de Status (Combate) -->
+        <div id="battle-field">
+            <div class="character-status" id="player-panel">
+                <h3>Herói (Você)</h3>
+                <div class="hp-bar-container">
+                    <div id="player-hp-bar" class="hp-bar"></div>
+                </div>
+                <p>Vida: <span id="player-hp-text">100</span>/100</p>
+                <p id="player-shield-text">Escudo: 0</p>
+            </div>
 
-        <footer>
-            <p><strong>Instruções:</strong> Clique em qualquer lugar cinza do mapa para construir uma torre por <strong>$50</strong>.</p>
-        </footer>
+            <div class="vs-text">VS</div>
+
+            <div class="character-status" id="enemy-panel">
+                <h3>Chefe Monstro</h3>
+                <div class="hp-bar-container">
+                    <div id="enemy-hp-bar" class="hp-bar"></div>
+                </div>
+                <p>Vida: <span id="enemy-hp-text">150</span>/150</p>
+                <p id="enemy-intent">Próximo Ataque: 15 de Dano</p>
+            </div>
+        </div>
+
+        <!-- Tabuleiro do Jogo de Memória -->
+        <div id="grid-board"></div>
+
+        <!-- Painel de Feedback Textual -->
+        <div id="combat-log">A batalha começou! Escolha duas cartas.</div>
     </div>
 
     <!-- Vinculação do arquivo JavaScript separado -->
