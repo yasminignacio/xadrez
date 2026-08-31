@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trabalho Prático: Text RPG Dungeon</title>
+    <title>Trabalho Prático: Nave Espacial 2D</title>
     <!-- Vinculação do arquivo CSS separado -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -11,23 +11,18 @@
 
     <div id="game-container">
         <header>
-            <h1>As Catacumbas de Eldoria</h1>
-            <!-- Painel de Atributos do Jogador -->
-            <div id="stats-panel">
-                <span>Vida: <strong id="hp-val">100</strong>/100</span> | 
-                <span>Ouro: $<strong id="gold-val">0</strong></span> | 
-                <span>Arma: <strong id="weapon-val">Adaga de Ferro</strong></span>
+            <h1>Space Defender</h1>
+            <div id="hud">
+                <div>Pontos: <strong id="score-val">0</strong></div>
+                <div>Vidas: <strong id="lives-val">3</strong></div>
             </div>
         </header>
 
-        <!-- Caixa de Texto Dinâmica da História -->
-        <main id="story-box">
-            Carregando a jornada...
-        </main>
+        <!-- Elemento Canvas onde os gráficos limpos são renderizados -->
+        <canvas id="spaceCanvas" width="600" height="400"></canvas>
 
-        <!-- Container de Botões de Escolha -->
-        <footer id="choices-panel">
-            <!-- Os botões serão injetados aqui pelo JavaScript -->
+        <footer>
+            <p><strong>Controles:</strong> Use as setas <strong>←</strong> e <strong>→</strong> para mover. Pressione <strong>Espaço</strong> para atirar.</p>
         </footer>
     </div>
 
