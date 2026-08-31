@@ -1,184 +1,173 @@
-// Configurações do Estado Inicial do RPG
-let playerHp = 100;
-let playerMaxHp = 100;
-let playerShield = 0;
+// Captura de Elementos do DOM
+const storyBox = document.getElementById('story-box');
+const choicesPanel = document.getElementById('choices-panel');
+const hpVal = document.getElementById('hp-val');
+const goldVal = document.getElementById('gold-val');
+const weaponVal = document.getElementById('weapon-val');
 
-let enemyHp = 150;
-let enemyMaxHp = 150;
-let enemyDamageIntent = 15;
+// Objeto de Estado Global do Jogador
+let state = {
+    hp: 100,
+    gold: 0,
+    weapon: "Adaga de Ferro",
+    hasShield: false
+};
 
-let lockBoard = false;
-let firstCard = null;
-let secondCard = null;
+// Atualiza o painel superior com os valores do estado atual
+function updateStats() {
+    hpVal.innerText = state.hp;
+    goldVal.innerText = state.gold;
+    weaponVal.innerText = state.weapon;
+}
 
-// Elementos do DOM mapeados
-const board = document.getElementById('grid-board');
-const log = document.getElementById('combat-log');
-const playerHpBar = document.getElementById('player-hp-bar');
-const playerHpText = document.getElementById('player-hp-text');
-const playerShieldText = document.getElementById('player-shield-text');
-const enemyHpBar = document.getElementById('enemy-hp-bar');
-const enemyHpText = document.getElementById('enemy-hp-text');
+// Inicia o motor do jogo no nó número 1
+function startGame() {
+    state = { hp: 100, gold: 0, weapon: "Adaga de Ferro", hasShield: false };
+    showStoryNode(1);
+}
 
-// Tipos de efeitos e seus símbolos visuais
-const cardTypes = [
-    { name: 'ataque', icon: '⚔️' },
-    { name: 'defesa', icon: '🛡️' },
-    { name: 'cura', icon: '🧪' },
-    { name: 'especial', icon: '⚡' }
-];
-
-// Duplica os itens para criar pares idênticos (Total de 16 cartas no grid 4x4)
-let deck = [...cardTypes, ...cardTypes, ...cardTypes, ...cardTypes];
-
-// Função de Embaralhamento (Algoritmo Fisher-Yates)
-function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+// Renderiza o texto e as opções de um nó específico da história
+function showStoryNode(nodeId) {
+    const node = storyNodes.find(n => n.id === nodeId);
+    
+    // Atualiza o texto da tela
+    storyBox.innerText = node.text;
+    
+    // Limpa os botões antigos
+    while (choicesPanel.firstChild) {
+        choicesPanel.removeChild(choicesPanel.firstChild);
     }
-    return array;
-}
 
-// Inicializa a criação visual do tabuleiro
-function createBoard() {
-    shuffle(deck);
-    deck.forEach(item => {
-        const card = document.createElement('div');
-        card.classList.add('card');
-        card.dataset.type = item.name;
+    // Cria e insere os novos botões baseados nas opções do nó
+    node.options.forEach(option => {
+        // Se a opção tiver uma condição que o jogador não cumpre, não mostra o botão
+        if (option.requiredState && !option.requiredState(state)) return;
 
-        // Estrutura interna para o efeito 3D de virada
-        card.innerHTML = `
-            <div class="card-face card-back">?</div>
-            <div class="card-face card-front">${item.icon}</div>
-        `;
-
-        card.addEventListener('click', flipCard);
-        board.appendChild(card);
+        const button = document.createElement('button');
+        button.innerText = option.text;
+        button.addEventListener('click', () => selectOption(option));
+        choicesPanel.appendChild(button);
     });
+
+    updateStats();
 }
 
-// Gerencia o clique e a rotação das cartas
-function flipCard() {
-    if (lockBoard) return;
-    if (this === firstCard) return; // Evita clicar duas vezes na mesma carta
+// Processa a escolha do jogador, aplicando consequências
+function selectOption(option) {
+    // Aplica alterações de estado se existirem (perda de vida, ganho de ouro, etc)
+    if (option.setState) {
+        state = { ...state, ...option.setState(state) };
+    }
 
-    this.classList.add('flipped');
-
-    if (!firstCard) {
-        firstCard = this;
+    // Verifica se o jogador morreu com essa escolha
+    if (state.hp <= 0) {
+        state.hp = 0;
+        showStoryNode(99); // Nó de Game Over
         return;
     }
 
-    secondCard = this;
-    checkForMatch();
+    // Avança para o próximo ID de destino da história
+    showStoryNode(option.nextTextId);
 }
 
-// Valida se as duas cartas selecionadas são iguais
-function checkForMatch() {
-    let isMatch = firstCard.dataset.type === secondCard.dataset.type;
-
-    if (isMatch) {
-        executeCombatAction(firstCard.dataset.type);
-        disableCards();
-    } else {
-        unflipCards();
-        executeEnemyTurn(); // Errar o par concede um turno de ataque ao inimigo
+// --- BANCO DE DADOS DA NARRATIVA (ÁRVORE DE DECISÕES) ---
+const storyNodes = [
+    {
+        id: 1,
+        text: "Você acorda no chão frio de uma masmorra. Tochas nas paredes iluminam fracamente dois caminhos à sua frente: um corredor escuro à esquerda exalando um cheiro podre, e uma escadaria de pedra à direita de onde vem um som de água corrente.",
+        options: [
+            { text: "Entrar no corredor escuro da esquerda", nextTextId: 2 },
+            { text: "Descer a escadaria de pedra da direita", nextTextId: 3 }
+        ]
+    },
+    {
+        id: 2,
+        text: "O corredor escuro é estreito. De repente, um Goblin salta das sombras com um porrete! O que você faz?",
+        options: [
+            { 
+                text: "Atacar com sua Adaga de Ferro", 
+                setState: (s) => ({ hp: s.hp - 20, gold: s.gold + 30 }), 
+                nextTextId: 4 
+            },
+            { 
+                text: "Tentar correr de volta", 
+                setState: (s) => ({ hp: s.hp - 10 }), 
+                nextTextId: 1 
+            }
+        ]
+    },
+    {
+        id: 3,
+        text: "A escadaria leva a um rio subterrâneo subterrâneo. No meio da água rasa, você vê um baú entreaberto e uma espada brilhante fincada em uma rocha.",
+        options: [
+            { text: "Abrir o baú entreaberto", setState: (s) => ({ gold: s.gold + 50 }), nextTextId: 5 },
+            { text: "Puxar a espada brilhante da rocha", setState: (s) => ({ weapon: "Espada de Aço" }), nextTextId: 5 },
+            { text: "Ignorar e voltar para o início", nextTextId: 1 }
+        ]
+    },
+    {
+        id: 4,
+        text: "Você derrota o Goblin, mas recebe um golpe no processo. Vasculhando o corpo dele, você encontra 30 moedas de ouro. O corredor continua e leva até uma grande porta de ferro trancada.",
+        options: [
+            { text: "Usar o ouro para subornar um guarda na guarita ao lado", requiredState: (s) => s.gold >= 30, setState: (s) => ({ gold: s.gold - 30 }), nextTextId: 6 },
+            { text: "Arrombar a porta usando a força bruta", setState: (s) => ({ hp: s.hp - 40 }), nextTextId: 6 }
+        ]
+    },
+    {
+        id: 5,
+        text: "Com seus novos recursos, você segue o fluxo do rio até encontrar a mesma grande porta de ferro por trás, evitando os guardas. No entanto, um enorme Dragão de Fogo bloqueia a saída final da masmorra!",
+        options: [
+            { text: "Atacar o dragão com sua arma atual", nextTextId: 7 },
+            { text: "Procurar uma rota de fuga alternativa nas paredes", nextTextId: 8 }
+        ]
+    },
+    {
+        id: 6,
+        text: "Você passa pela porta de ferro, mas dá de cara com a sala principal. Um enorme Dragão de Fogo está acordado e bloqueia a saída final da masmorra!",
+        options: [
+            { text: "Atacar o dragão diretamente", nextTextId: 7 },
+            { text: "Tentar fugir correndo desesperadamente", setState: (s) => ({ hp: 0 }), nextTextId: 99 }
+        ]
+    },
+    {
+        id: 7,
+        text: "Batalha Final! Você corre em direção ao monstro.",
+        options: [
+            { 
+                text: "Desferir o golpe com a Espada de Aço", 
+                requiredState: (s) => s.weapon === "Espada de Aço", 
+                nextTextId: 10 // Vitória
+            },
+            { 
+                text: "Atacar com sua fraca Adaga de Ferro", 
+                requiredState: (s) => s.weapon === "Adaga de Ferro", 
+                setState: (s) => ({ hp: 0 }), 
+                nextTextId: 99 // Derrota
+            }
+        ]
+    },
+    {
+        id: 8,
+        text: "Procurando nas frestas da parede, você acha uma pequena passagem secreta que te leva direto para a superfície, sã e salvo. Você escapou estrategicamente!",
+        options: [
+            { text: "Jogar Novamente", nextTextId: 1, setState: () => ({ hp: 100, gold: 0, weapon: "Adaga de Ferro" }) }
+        ]
+    },
+    {
+        id: 10,
+        text: "VITÓRIA! Graças à Espada de Aço encontrada no rio, seu golpe corta as escamas do dragão, fazendo-o recuar. Você abre as grandes portas de Eldoria e sai vitorioso para a luz do sol!",
+        options: [
+            { text: "Jogar Novamente", nextTextId: 1, setState: () => ({ hp: 100, gold: 0, weapon: "Adaga de Ferro" }) }
+        ]
+    },
+    {
+        id: 99,
+        text: "GAME OVER. Seus pontos de vida chegaram a zero. Sua jornada termina esquecida na escuridão das catacumbas.",
+        options: [
+            { text: "Tentar Novamente", nextTextId: 1, setState: () => ({ hp: 100, gold: 0, weapon: "Adaga de Ferro" }) }
+        ]
     }
-}
+];
 
-// Remove eventos se houver acerto, mantendo-as abertas
-function disableCards() {
-    firstCard.removeEventListener('click', flipCard);
-    secondCard.removeEventListener('click', flipCard);
-    resetTurn();
-    checkGameOver();
-}
-
-// Desvira as cartas se o jogador errar o par
-function unflipCards() {
-    lockBoard = true;
-    setTimeout(() => {
-        firstCard.classList.remove('flipped');
-        secondCard.classList.remove('flipped');
-        resetTurn();
-    }, 1000);
-}
-
-// Reseta os ponteiros de validação de rodada
-function resetTurn() {
-    [firstCard, secondCard] = [null, null];
-    lockBoard = false;
-}
-
-// --- MECÂNICAS DE COMBATE (LÓGICA RPG) ---
-
-function executeCombatAction(type) {
-    switch (type) {
-        case 'ataque':
-            let dmg = 25;
-            enemyHp = Math.max(0, enemyHp - dmg);
-            log.innerText = `Sucesso! Você usou a Espada e causou ${dmg} de dano ao Monstro!`;
-            break;
-        case 'defesa':
-            playerShield += 20;
-            log.innerText = `Sucesso! Você ergueu um Escudo de proteção de 20 pontos!`;
-            break;
-        case 'cura':
-            playerHp = Math.min(playerMaxHp, playerHp + 25);
-            log.innerText = `Sucesso! Você bebeu uma Poção e recuperou 25 de Vida!`;
-            break;
-        case 'especial':
-            let espDmg = 45;
-            enemyHp = Math.max(0, enemyHp - espDmg);
-            log.innerText = `Incrível! Movimento Crítico! Relâmpago causou ${espDmg} de dano!`;
-            break;
-    }
-    updateInterface();
-}
-
-function executeEnemyTurn() {
-    // Calcula o dano recebido mitigado pelo escudo do jogador
-    let damageTaken = enemyDamageIntent;
-    
-    if (playerShield > 0) {
-        if (playerShield >= damageTaken) {
-            playerShield -= damageTaken;
-            damageTaken = 0;
-        } else {
-            damageTaken -= playerShield;
-            playerShield = 0;
-        }
-    }
-
-    playerHp = Math.max(0, playerHp - damageTaken);
-    log.innerText = `Você errou o par! O Monstro contra-atacou e te causou ${damageTaken} de dano real.`;
-    
-    updateInterface();
-    checkGameOver();
-}
-
-function updateInterface() {
-    // Atualização matemática de textos e preenchimento das barras (%)
-    playerHpText.innerText = playerHp;
-    playerShieldText.innerText = `Escudo: ${playerShield}`;
-    playerHpBar.style.width = `${(playerHp / playerMaxHp) * 100}%`;
-
-    enemyHpText.innerText = enemyHp;
-    enemyHpBar.style.width = `${(enemyHp / enemyMaxHp) * 100}%`;
-}
-
-function checkGameOver() {
-    if (enemyHp <= 0) {
-        log.innerHTML = `<strong style="color: #00b37e;">VITÓRIA! O Chefe foi derrotado! Você salvou o reino!</strong>`;
-        lockBoard = true;
-    } else if (playerHp <= 0) {
-        log.innerHTML = `<strong style="color: #f75a68;">FIM DE JOGO! Suas vidas acabaram. O Monstro venceu.</strong>`;
-        lockBoard = true;
-    }
-}
-
-// Inicializa a execução
-createBoard();
-updateInterface();
+// Inicializa o jogo assim que a página carrega
+startGame();

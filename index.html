@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trabalho Prático: Memory Combat RPG</title>
+    <title>Trabalho Prático: Text RPG Dungeon</title>
     <!-- Vinculação do arquivo CSS separado -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -11,38 +11,24 @@
 
     <div id="game-container">
         <header>
-            <h1>Memory RPG Battle</h1>
-            <p>Combine os pares de cartas para atacar o monstro antes que sua vida acabe!</p>
+            <h1>As Catacumbas de Eldoria</h1>
+            <!-- Painel de Atributos do Jogador -->
+            <div id="stats-panel">
+                <span>Vida: <strong id="hp-val">100</strong>/100</span> | 
+                <span>Ouro: $<strong id="gold-val">0</strong></span> | 
+                <span>Arma: <strong id="weapon-val">Adaga de Ferro</strong></span>
+            </div>
         </header>
 
-        <!-- Painel de Status (Combate) -->
-        <div id="battle-field">
-            <div class="character-status" id="player-panel">
-                <h3>Herói (Você)</h3>
-                <div class="hp-bar-container">
-                    <div id="player-hp-bar" class="hp-bar"></div>
-                </div>
-                <p>Vida: <span id="player-hp-text">100</span>/100</p>
-                <p id="player-shield-text">Escudo: 0</p>
-            </div>
+        <!-- Caixa de Texto Dinâmica da História -->
+        <main id="story-box">
+            Carregando a jornada...
+        </main>
 
-            <div class="vs-text">VS</div>
-
-            <div class="character-status" id="enemy-panel">
-                <h3>Chefe Monstro</h3>
-                <div class="hp-bar-container">
-                    <div id="enemy-hp-bar" class="hp-bar"></div>
-                </div>
-                <p>Vida: <span id="enemy-hp-text">150</span>/150</p>
-                <p id="enemy-intent">Próximo Ataque: 15 de Dano</p>
-            </div>
-        </div>
-
-        <!-- Tabuleiro do Jogo de Memória -->
-        <div id="grid-board"></div>
-
-        <!-- Painel de Feedback Textual -->
-        <div id="combat-log">A batalha começou! Escolha duas cartas.</div>
+        <!-- Container de Botões de Escolha -->
+        <footer id="choices-panel">
+            <!-- Os botões serão injetados aqui pelo JavaScript -->
+        </footer>
     </div>
 
     <!-- Vinculação do arquivo JavaScript separado -->

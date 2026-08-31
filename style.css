@@ -1,10 +1,10 @@
-/* Configurações Globais */
+/* Estilo Base Sombrio */
 body {
     margin: 0;
     padding: 0;
-    background-color: #121214;
-    color: #e1e1e6;
-    font-family: 'Segoe UI', Arial, sans-serif;
+    background-color: #0d0e12;
+    color: #cbd5e1;
+    font-family: 'Courier New', Courier, monospace;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -13,125 +13,69 @@ body {
 
 #game-container {
     width: 90%;
-    max-width: 800px;
-    background-color: #202024;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-    text-align: center;
+    max-width: 650px;
+    background-color: #1e222b;
+    border: 2px solid #3f4452;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
 }
 
 header h1 {
-    color: #9b51e0;
-    margin: 0 0 5px 0;
-}
-
-header p {
-    color: #8d8d99;
-    margin: 0 0 20px 0;
-}
-
-/* Painel de Combate */
-#battle-field {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #121214;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 25px;
-}
-
-.character-status {
-    flex: 1;
-    padding: 10px;
-}
-
-.vs-text {
-    font-weight: bold;
+    color: #ffb703;
+    margin: 0 0 10px 0;
     font-size: 24px;
-    color: #f75a68;
-    padding: 0 15px;
+    text-align: center;
 }
 
-/* Barras de Vida */
-.hp-bar-container {
-    background-color: #323238;
-    height: 20px;
-    border-radius: 10px;
-    overflow: hidden;
-    margin: 8px 0;
-}
-
-.hp-bar {
-    height: 100%;
-    width: 100%;
-    background-color: #00b37e;
-    transition: width 0.4s ease;
-}
-
-#enemy-hp-bar {
-    background-color: #f75a68;
-}
-
-/* Tabuleiro das Cartas (Grip Dinâmico) */
-#grid-board {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
+/* Painel de Status */
+#stats-panel {
+    background-color: #11141a;
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 14px;
     margin-bottom: 25px;
-    perspective: 1000px; /* Cria efeito de profundidade 3D */
+    border-left: 4px solid #ffb703;
 }
 
-/* Efeito de Virada da Carta (Card Flip) */
-.card {
-    height: 110px;
-    cursor: pointer;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform 0.5s;
-    border-radius: 6px;
+#hp-val { color: #ef4444; }
+#gold-val { color: #ffb703; }
+#weapon-val { color: #a855f7; }
+
+/* Caixa de Texto Principal */
+#story-box {
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 150px;
+    margin-bottom: 30px;
+    text-align: justify;
+    color: #e2e8f0;
 }
 
-.card.flipped {
-    transform: rotateY(180deg);
-}
-
-.card-face {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden; /* Esconde a parte de trás enquanto vira */
+/* Painel de Botões de Ação */
+#choices-panel {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 28px;
-    border-radius: 6px;
-    font-weight: bold;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.card-back {
-    background: linear-gradient(135deg, #4f46e5, #3b82f6);
-    border: 2px solid #ffffff33;
-}
-
-.card-front {
-    background-color: #29292e;
-    transform: rotateY(180deg);
-    border: 2px solid #9b51e0;
-}
-
-/* Estilos Temáticos para as Ações na Frente das Cartas */
-.card[data-type="ataque"] .card-front { color: #f75a68; }
-.card[data-type="defesa"] .card-front { color: #4cc9f0; }
-.card[data-type="cura"] .card-front { color: #00b37e; }
-.card[data-type="especial"] .card-front { color: #ffd166; }
-
-/* Log de Combate */
-#combat-log {
-    background-color: #121214;
+/* Estilização Dinâmica dos Botões */
+button {
+    background-color: #2d3343;
+    color: #f8fafc;
+    border: 1px solid #47526d;
     padding: 12px;
-    border-radius: 6px;
-    font-style: italic;
-    color: #c4c4cc;
+    font-family: inherit;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    background-color: #3b82f6;
+    border-color: #60a5fa;
+    transform: translateX(5px);
 }
