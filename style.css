@@ -1,7 +1,7 @@
 body {
     margin: 0;
     padding: 0;
-    background-color: #080711;
+    background-color: #05050a;
     color: #ffffff;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
@@ -11,48 +11,46 @@ body {
 }
 
 #game-container {
-    background-color: #110f24;
-    padding: 25px;
+    background-color: #0f0f1a;
+    padding: 20px;
     border-radius: 16px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
     text-align: center;
-    border: 2px solid #1f1a44;
+    border: 2px solid #1a1a3a;
 }
 
 header h1 {
     margin: 0 0 10px 0;
-    color: #ff007f;
-    font-size: 28px;
+    color: #00ffff;
+    font-size: 26px;
     letter-spacing: 2px;
-    text-transform: uppercase;
-    text-shadow: 0 0 10px #ff007f;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
 }
 
 #hud {
     display: flex;
     justify-content: space-around;
-    background-color: #080711;
-    padding: 12px;
+    background-color: #05050a;
+    padding: 10px 20px;
     border-radius: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     font-size: 18px;
     font-weight: bold;
-    border: 1px solid #1f1a44;
+    border: 1px solid #1a1a3a;
 }
 
-#score-val { color: #00ffff; text-shadow: 0 0 8px #00ffff; }
-#highscore-val { color: #ffb703; text-shadow: 0 0 8px #ffb703; }
+#score-val { color: #00ffcc; }
+#combo-val { color: #ff007f; }
 
 canvas {
-    border: 2px solid #ff007f;
-    background-color: #0c0a1c;
+    border: 2px solid #2a2a5a;
+    background-color: #020205;
     display: block;
-    border-radius: 8px;
-    box-shadow: inset 0 0 20px rgba(255, 0, 127, 0.2);
+    border-radius: 6px;
 }
 
 footer {
     margin-top: 15px;
-    font-size: 14px;
-    color: #625e8a;
+    font-size: 13px;
+    color: #555577;
 }

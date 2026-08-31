@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trabalho Acadêmico: Cyber Runner 2D</title>
+    <title>Trabalho Prático: Rhythm Hero 2D</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="game-container">
         <header>
-            <h1>Neon Cyber Runner</h1>
+            <h1>Neon Rhythm Hero</h1>
             <div id="hud">
-                <div>Pontuação: <strong id="score-val">0</strong></div>
-                <div>Recorde: <strong id="highscore-val">0</strong></div>
+                <div>Pontos: <strong id="score-val">0</strong></div>
+                <div>Combo: <strong id="combo-val">0</strong></div>
             </div>
         </header>
 
-        <!-- Tela de pintura gráfica -->
-        <canvas id="runnerCanvas" width="700" height="300"></canvas>
+        <!-- Tela de renderização do jogo -->
+        <canvas id="rhythmCanvas" width="400" height="500"></canvas>
 
         <footer>
-            <p><strong>Controles:</strong> Pressione a tecla <strong>ESPAÇO</strong> ou a <strong>SETA PARA CIMA</strong> para pular.</p>
+            <p><strong>Controles:</strong> Pressione as teclas <strong>A</strong>, <strong>S</strong>, <strong>D</strong> ou <strong>F</strong> no momento exato!</p>
         </footer>
     </div>
 
