@@ -1,75 +1,55 @@
-// Captura dos elementos do HTML
-const canvas = document.getElementById('spaceCanvas');
+const canvas = document.getElementById('runnerCanvas');
 const ctx = canvas.getContext('2d');
 const scoreVal = document.getElementById('score-val');
-const livesVal = document.getElementById('lives-val');
+const highscoreVal = document.getElementById('highscore-val');
 
-// Estados Globais do Jogo
+// Estados fundamentais do motor
 let score = 0;
-let lives = 3;
+let highscore = 0;
 let gameOver = false;
+let gameSpeed = 5;
+let frameCount = 0;
 
-// Configuração do Jogador (Nave)
+// Configurações físicas do Jogador (Cubo Neon)
 const player = {
-    x: canvas.width / 2 - 20,
-    y: canvas.height - 40,
-    width: 40,
-    height: 30,
-    speed: 6
+    x: 50,
+    y: canvas.height - 60,
+    width: 30,
+    height: 40,
+    velocityY: 0,
+    gravity: 0.6,
+    jumpForce: -12,
+    isGrounded: true
 };
 
-// Listas de entidades mecânicas
-const lasers = [];
-const asteroids = [];
+// Lista de Obstáculos na pista
+let obstacles = [];
 
-// Controle de teclas pressionadas pelo usuário
-const keys = {
-    ArrowLeft: false,
-    ArrowRight: false,
-    Space: false
-};
-
-// Escutadores de eventos do teclado
+// Gerenciador de Entrada de teclado estável
 window.addEventListener('keydown', (e) => {
-    if (e.code === 'ArrowLeft') keys.ArrowLeft = true;
-    if (e.code === 'ArrowRight') keys.ArrowRight = true;
-    if (e.code === 'Space' && !keys.Space && !gameOver) {
-        keys.Space = true;
-        // Cria um laser saindo exatamente do meio da nave
-        lasers.push({
-            x: player.x + player.width / 2 - 2,
-            y: player.y,
-            width: 4,
-            height: 10,
-            speed: 8
-        });
+    if ((e.code === 'Space' || e.code === 'ArrowUp')) {
+        e.preventDefault(); // Evita que a página role para baixo ao apertar espaço
+        
+        if (gameOver) {
+            resetGame();
+        } else if (player.isGrounded) {
+            player.velocityY = player.jumpForce;
+            player.isGrounded = false;
+        }
     }
 });
 
-window.addEventListener('keyup', (e) => {
-    if (e.code === 'ArrowLeft') keys.ArrowLeft = false;
-    if (e.code === 'ArrowRight') keys.ArrowRight = false;
-    if (e.code === 'Space') keys.Space = false;
-});
-
-// Geração procedural de Inimigos (Asteroides)
-function spawnAsteroid() {
-    if (gameOver) return;
-    
-    const size = Math.floor(Math.random() * 20) + 15; // Tamanho randômico entre 15 e 35
-    asteroids.push({
-        x: Math.random() * (canvas.width - size),
-        y: -size,
-        width: size,
-        height: size,
-        speed: Math.random() * 2 + 1.5 // Velocidades variadas
+function spawnObstacle() {
+    // Escolhe aleatoriamente se cria um obstáculo alto ou baixo
+    const height = Math.random() > 0.5 ? 40 : 25;
+    obstacles.push({
+        x: canvas.width,
+        y: canvas.height - height - 20, // Descontando a linha do chão
+        width: 20,
+        height: height
     });
-
-    // Agenda o surgimento do próximo asteroide em um tempo aleatório
-    setTimeout(spawnAsteroid, Math.random() * 1000 + 800);
 }
 
-// Detecção matemática de colisão por caixas envolventes (AABB)
 function checkCollision(rect1, rect2) {
     return rect1.x < rect2.x + rect2.width &&
            rect1.x + rect1.width > rect2.x &&
@@ -77,119 +57,124 @@ function checkCollision(rect1, rect2) {
            rect1.y + rect1.height > rect2.y;
 }
 
-// --- ENGINE LOOP (ATUALIZAÇÃO DE FRAMES GRÁFICOS) ---
+// --- LOOP MATEMÁTICO (UPDATE) ---
 function update() {
     if (gameOver) return;
 
-    // Movimentação da Nave com travas nas bordas laterais do mapa
-    if (keys.ArrowLeft && player.x > 0) {
-        player.x -= player.speed;
-    }
-    if (keys.ArrowRight && player.x < canvas.width - player.width) {
-        player.x += player.speed;
-    }
-
-    // Processamento e movimentação dos tiros (Lasers)
-    for (let i = lasers.length - 1; i >= 0; i--) {
-        lasers[i].y -= lasers[i].speed;
-        // Limpa da memória os lasers que saíram da tela superior
-        if (lasers[i].y < 0) {
-            lasers.splice(i, 1);
-        }
+    frameCount++;
+    
+    // Aumenta a velocidade do jogo gradualmente para ficar desafiador
+    if (frameCount % 500 === 0) {
+        gameSpeed += 0.5;
     }
 
-    // Processamento, movimentação e física dos asteroides
-    for (let i = asteroids.length - 1; i >= 0; i--) {
-        asteroids[i].y += asteroids[i].speed;
+    // Aplica física de gravidade no jogador
+    player.velocityY += player.gravity;
+    player.y += player.velocityY;
 
-        // Se o asteroide ultrapassar o limite inferior, jogador perde 1 vida
-        if (asteroids[i].y > canvas.height) {
-            asteroids.splice(i, 1);
-            lives--;
-            livesVal.innerText = lives;
-            if (lives <= 0) {
-                gameOver = true;
-            }
+    // Trava o jogador na linha do chão firme
+    const groundY = canvas.height - player.height - 20;
+    if (player.y >= groundY) {
+        player.y = groundY;
+        player.velocityY = 0;
+        player.isGrounded = true;
+    }
+
+    // Adiciona pontos pelo tempo de sobrevivência
+    if (frameCount % 5 === 0) {
+        score++;
+        scoreVal.innerText = score;
+    }
+
+    // Controle de spawn dinâmico de obstáculos baseado na velocidade atual
+    const spawnInterval = Math.max(60, 120 - Math.floor(gameSpeed * 4));
+    if (frameCount % spawnInterval === 0) {
+        spawnObstacle();
+    }
+
+    // Movimentação e colisão de obstáculos
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        obstacles[i].x -= gameSpeed;
+
+        // Apaga do array os obstáculos que saíram da tela esquerda para otimizar memória
+        if (obstacles[i].x + obstacles[i].width < 0) {
+            obstacles.splice(i, 1);
             continue;
         }
 
-        // Checa colisão física: Asteroide encostou na Nave do Jogador
-        if (checkCollision(asteroids[i], player)) {
-            asteroids.splice(i, 1);
-            lives--;
-            livesVal.innerText = lives;
-            if (lives <= 0) {
-                gameOver = true;
-            }
-            continue;
-        }
-
-        // Checa colisão física: Tiros de Laser acertaram o Asteroide
-        for (let j = lasers.length - 1; j >= 0; j--) {
-            if (checkCollision(lasers[j], asteroids[i])) {
-                asteroids.splice(i, 1);
-                lasers.splice(j, 1);
-                score += 10;
-                scoreVal.innerText = score;
-                break;
+        // Executa o teste de colisão contra o jogador
+        if (checkCollision(player, obstacles[i])) {
+            gameOver = true;
+            if (score > highscore) {
+                highscore = score;
+                highscoreVal.innerText = highscore;
             }
         }
     }
 }
 
-// --- RENDERIZADOR DIGITAL (DESENHO NA TELA) ---
+// --- LOOP VISUAL (DRAW) ---
 function draw() {
-    // Limpa o canvas para o próximo quadro líquido
+    // Limpeza completa do quadro
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // 1. Linha do Chão Neon
+    ctx.strokeStyle = '#1f1a44';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height - 20);
+    ctx.lineTo(canvas.width, canvas.height - 20);
+    ctx.stroke();
+
+    // 2. Desenho do Jogador (Quadrante com rastro Neon Ciano)
+    ctx.fillStyle = '#00ffff';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#00ffff';
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+
+    // 3. Desenho dos Obstáculos (Barreiras Neon Roxas)
+    ctx.fillStyle = '#ff007f';
+    ctx.shadowColor = '#ff007f';
+    obstacles.forEach(obs => {
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+    });
+
+    // Reset de sombras para textos não borrarem
+    ctx.shadowBlur = 0;
+
+    // 4. Tela de Fim de Jogo overlay
     if (gameOver) {
-        ctx.fillStyle = '#ff477e';
-        ctx.font = 'bold 36px sans-serif';
+        ctx.fillStyle = 'rgba(8, 7, 17, 0.85)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#ff007f';
+        ctx.font = 'bold 32px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('FIM DE JOGO', canvas.width / 2, canvas.height / 2);
+        ctx.fillText('CONEXÃO INTERROMPIDA', canvas.width / 2, canvas.height / 2 - 10);
+
         ctx.fillStyle = '#ffffff';
         ctx.font = '16px sans-serif';
-        ctx.fillText('Pressione F5 para reiniciar a missão', canvas.width / 2, canvas.height / 2 + 40);
-        return;
+        ctx.fillText('Pressione ESPAÇO para restaurar o sistema', canvas.width / 2, canvas.height / 2 + 30);
     }
-
-    // Desenha o jogador (Representado por um triângulo futurista azul)
-    ctx.fillStyle = '#4ea8de';
-    ctx.beginPath();
-    ctx.moveTo(player.x + player.width / 2, player.y);
-    ctx.lineTo(player.x, player.y + player.height);
-    ctx.lineTo(player.x + player.width, player.y + player.height);
-    ctx.closePath();
-    ctx.fill();
-
-    // Desenha todos os Lasers ativos na cor verde neon
-    ctx.fillStyle = '#70e000';
-    lasers.forEach(laser => {
-        ctx.fillRect(laser.x, laser.y, laser.width, laser.height);
-    });
-
-    // Desenha os asteroides como círculos cinzas texturizados
-    ctx.fillStyle = '#555566';
-    asteroids.forEach(asteroid => {
-        ctx.beginPath();
-        ctx.arc(
-            asteroid.x + asteroid.width / 2, 
-            asteroid.y + asteroid.height / 2, 
-            asteroid.width / 2, 
-            0, 
-            Math.PI * 2
-        );
-        ctx.fill();
-    });
 }
 
-// Gatilho principal que sincroniza as atualizações com a taxa de atualização do monitor
+function resetGame() {
+    score = 0;
+    scoreVal.innerText = score;
+    gameOver = false;
+    gameSpeed = 5;
+    frameCount = 0;
+    obstacles = [];
+    player.y = canvas.height - player.height - 20;
+    player.velocityY = 0;
+    player.isGrounded = true;
+}
+
+// Inicializador sincronizado da engine
 function gameLoop() {
     update();
     draw();
     requestAnimationFrame(gameLoop);
 }
 
-// Disparos automáticos iniciais
-spawnAsteroid();
 gameLoop();

@@ -3,30 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trabalho Prático: Nave Espacial 2D</title>
-    <!-- Vinculação do arquivo CSS separado -->
+    <title>Trabalho Acadêmico: Cyber Runner 2D</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="game-container">
         <header>
-            <h1>Space Defender</h1>
+            <h1>Neon Cyber Runner</h1>
             <div id="hud">
-                <div>Pontos: <strong id="score-val">0</strong></div>
-                <div>Vidas: <strong id="lives-val">3</strong></div>
+                <div>Pontuação: <strong id="score-val">0</strong></div>
+                <div>Recorde: <strong id="highscore-val">0</strong></div>
             </div>
         </header>
 
-        <!-- Elemento Canvas onde os gráficos limpos são renderizados -->
-        <canvas id="spaceCanvas" width="600" height="400"></canvas>
+        <!-- Tela de pintura gráfica -->
+        <canvas id="runnerCanvas" width="700" height="300"></canvas>
 
         <footer>
-            <p><strong>Controles:</strong> Use as setas <strong>←</strong> e <strong>→</strong> para mover. Pressione <strong>Espaço</strong> para atirar.</p>
+            <p><strong>Controles:</strong> Pressione a tecla <strong>ESPAÇO</strong> ou a <strong>SETA PARA CIMA</strong> para pular.</p>
         </footer>
     </div>
 
-    <!-- Vinculação do arquivo JavaScript separado -->
     <script src="game.js"></script>
 </body>
 </html>
