@@ -3,154 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo da Cobrinha</title>
+    <title>Plataforma Arcade - Phaser 3</title>
     <style>
         body {
-            background-color: #222;
-            color: white;
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
             margin: 0;
-        }
-        h1 {
-            margin-bottom: 10px;
-        }
-        #score {
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-        canvas {
-            border: 4px solid #fff;
             background-color: #111;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
         }
     </style>
+    <!-- Importando a biblioteca Phaser 3 via CDN -->
+    <script src="https://jsdelivr.net"></script>
 </head>
 <body>
 
-    <h1>Jogo da Cobrinha</h1>
-    <div id="score">Pontuação: 0</div>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
-
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const scoreElement = document.getElementById("score");
-
-        const gridSize = 20;
-        const tileCount = canvas.width / gridSize;
-
-        let snake = [{ x: 10, y: 10 }];
-        let food = { x: 5, y: 5 };
-        let dx = 0;
-        let dy = 0;
-        let score = 0;
-        let gameInterval;
-
-        function main() {
-            if (hasGameEnded()) {
-                alert(`Fim de Jogo! Sua pontuação final foi: ${score}`);
-                resetGame();
-                return;
+<script>
+    const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 300 },
+                debug: false
             }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        }
+    };
 
-            changingDirection = false;
-            clearCanvas();
-            drawFood();
-            moveSnake();
-            drawSnake();
+    const game = new Phaser.Game(config);
+    let player;
+    let platforms;
+    let cursors;
+    let stars;
+    let score = 0;
+    let scoreText;
+    let bombs;
+    let gameOver = false;
+
+    function preload() {
+        // Carregando imagens baseadas em formas geométricas nativas para funcionar sem arquivos externos
+        this.load.image('sky', 'https://phaser.io');
+        this.load.image('ground', 'https://phaser.io');
+        this.load.image('star', 'https://phaser.io');
+        this.load.image('bomb', 'https://phaser.io');
+        this.load.spritesheet('dude', 'https://phaser.io', { frameWidth: 32, frameHeight: 48 });
+    }
+
+    function create() {
+        // Fundo do cenário
+        this.add.image(400, 300, 'sky');
+
+        // Grupo de plataformas com física estática (não se movem)
+        platforms = this.physics.add.staticGroup();
+
+        // Chão principal e plataformas flutuantes
+        platforms.create(400, 568, 'ground').setScale(2).refreshBody();
+        platforms.create(600, 400, 'ground');
+        platforms.create(50, 250, 'ground');
+        platforms.create(750, 220, 'ground');
+
+        // Configuração do Jogador (Sprite + Física Dinâmica)
+        player = this.physics.add.sprite(100, 450, 'dude');
+        player.setBounce(0.2); // Pequeno quique ao cair
+        player.setCollideWorldBounds(true); // Não sair da tela
+
+        // Animações do Jogador
+        this.anims.create({
+            key: 'left',
+            frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'turn',
+            frames: [ { key: 'dude', frame: 4 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'right',
+            frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Controles do teclado
+        cursors = this.input.keyboard.createCursorKeys();
+
+        // Grupo de Itens Colecionáveis (Estrelas)
+        stars = this.physics.add.group({
+            key: 'star',
+            repeat: 11,
+            setXY: { x: 12, y: 0, stepX: 70 }
+        });
+
+        stars.children.iterate(function (child) {
+            // Efeito de quique aleatório para cada estrela
+            child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+            child.setScale(0.5);
+        });
+
+        // Inimigos (Bombas)
+        bombs = this.physics.add.group();
+
+        // Texto do Placar
+        scoreText = this.add.text(16, 16, 'Pontos: 0', { fontSize: '32px', fill: '#fff', fontFamily: 'sans-serif' });
+
+        // Adicionando colisões no motor físico
+        this.physics.add.collider(player, platforms);
+        this.physics.add.collider(stars, platforms);
+        this.physics.add.collider(bombs, platforms);
+
+        // Checar sobreposição (Overlap) para coletar itens ou morrer
+        this.physics.add.overlap(player, stars, collectStar, null, this);
+        this.physics.add.collider(player, bombs, hitBomb, null, this);
+    }
+
+    function update() {
+        if (gameOver) {
+            return;
         }
 
-        // Inicia o loop do jogo (atualiza a cada 100 milissegundos)
-        resetGame();
-
-        function clearCanvas() {
-            ctx.fillStyle = "#111";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Movimentação Esquerda / Direita
+        if (cursors.left.isDown) {
+            player.setVelocityX(-160);
+            player.anims.play('left', true);
+        } else if (cursors.right.isDown) {
+            player.setVelocityX(160);
+            player.anims.play('right', true);
+        } else {
+            player.setVelocityX(0);
+            player.anims.play('turn');
         }
 
-        function drawSnake() {
-            ctx.fillStyle = "#4CAF50";
-            snake.forEach(part => {
-                ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
+        // Pular (Apenas se estiver tocando no chão ou plataforma)
+        if (cursors.up.isDown && player.body.touching.down) {
+            player.setVelocityY(-330);
+        }
+    }
+
+    function collectStar(player, star) {
+        star.disableBody(true, true); // Remove a estrela da tela
+
+        score += 10;
+        scoreText.setText('Pontos: ' + score);
+
+        // Se coletar todas as estrelas, cria uma nova leva e joga uma bomba na tela
+        if (stars.countActive(true) === 0) {
+            stars.children.iterate(function (child) {
+                child.enableBody(true, child.x, 0, true, true);
             });
+
+            // Evita que a bomba caia direto na cabeça do jogador
+            const x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+            const bomb = bombs.create(x, 16, 'bomb');
+            bomb.setBounce(1);
+            bomb.setCollideWorldBounds(true);
+            bomb.setVelocity(Phaser.Math.Between(-200, 200), 200);
         }
+    }
 
-        function moveSnake() {
-            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
-            snake.unshift(head);
+    function hitBomb(player, bomb) {
+        this.physics.pause();
+        player.setTint(0xff0000);
+        player.anims.play('turn');
+        gameOver = true;
+        
+        this.add.text(300, 250, 'GAME OVER', { fontSize: '48px', fill: '#ff0000', fontWeight: 'bold' });
+    }
+</script>
 
-            const hasEatenFood = snake[0].x === food.x && snake[0].y === food.y;
-            if (hasEatenFood) {
-                score += 10;
-                scoreElement.innerText = "Pontuação: " + score;
-                generateFood();
-            } else {
-                snake.pop();
-            }
-        }
-
-        function drawFood() {
-            ctx.fillStyle = "#FF5722";
-            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
-        }
-
-        function generateFood() {
-            food.x = Math.floor(Math.random() * tileCount);
-            food.y = Math.floor(Math.random() * tileCount);
-
-            // Garante que a comida não surja em cima da cobra
-            snake.forEach(part => {
-                const hasEaten = part.x === food.x && part.y === food.y;
-                if (hasEaten) generateFood();
-            });
-        }
-
-        function hasGameEnded() {
-            // Colisão com as paredes
-            const hitLeftWall = snake[0].x < 0;
-            const hitRightWall = snake[0].x >= tileCount;
-            const hitToptWall = snake[0].y < 0;
-            const hitBottomWall = snake[0].y >= tileCount;
-
-            if (hitLeftWall || hitRightWall || hitToptWall || hitBottomWall) return true;
-
-            // Colisão com o próprio corpo
-            for (let i = 4; i < snake.length; i++) {
-                if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) return true;
-            }
-            return false;
-        }
-
-        function changeDirection(event) {
-            const keyPressed = event.keyCode;
-            const goingUp = dy === -1;
-            const goingDown = dy === 1;
-            const goingRight = dx === 1;
-            const goingLeft = dx === -1;
-
-            // Setas do teclado
-            if (keyPressed === 37 && !goingRight) { dx = -1; dy = 0; }
-            if (keyPressed === 38 && !goingDown) { dx = 0; dy = -1; }
-            if (keyPressed === 39 && !goingLeft) { dx = 1; dy = 0; }
-            if (keyPressed === 40 && !goingUp) { dx = 0; dy = 1; }
-        }
-
-        function resetGame() {
-            snake = [{ x: 10, y: 10 }];
-            food = { x: 5, y: 5 };
-            dx = 1; // começa movendo para a direita
-            dy = 0;
-            score = 0;
-            scoreElement.innerText = "Pontuação: " + score;
-            clearInterval(gameInterval);
-            gameInterval = setInterval(main, 100);
-        }
-
-        document.addEventListener("keydown", changeDirection);
-    </script>
 </body>
 </html>
