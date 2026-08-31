@@ -1,0 +1,61 @@
+/* Configurações globais e reset de margens */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #1e1e24;
+    color: #f5f5f5;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Container que engloba todo o jogo */
+#game-container {
+    background-color: #2a2a35;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+header h1 {
+    margin: 0 0 15px 0;
+    font-size: 24px;
+    color: #4caf50;
+}
+
+/* HUD - Barra com status do jogador */
+#hud {
+    display: flex;
+    justify-content: space-around;
+    background-color: #15151c;
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.hud-item {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#life-val { color: #ff5252; }
+#gold-val { color: #ffd740; }
+#wave-val { color: #40c4ff; }
+
+/* O Canvas de renderização */
+canvas {
+    border: 3px solid #444;
+    background-color: #222;
+    border-radius: 4px;
+    cursor: pointer;
+    display: block;
+}
+
+footer {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #aaa;
+}
