@@ -8,14 +8,15 @@ const tileSize = canvas.width / boardSize;
 
 let currentTurn = 'W'; // 'W' para Brancas, 'B' para Pretas
 let selectedPiece = null; // Guarda {r, c} da peça selecionada
+let isGameOver = false;
 
-// Símbolos Unicode das peças de xadrez
+// Símbolos Unicode corretos
 const piecesSymbols = {
-    'W_R': '♜', 'W_N': '♞', 'W_B': '♝', 'W_Q': '♛', 'W_K': '♚', 'W_P': '♟',
+    'W_R': '♖', 'W_N': '♘', 'W_B': '♗', 'W_Q': '♕', 'W_K': '♔', 'W_P': '♙',
     'B_R': '♜', 'B_N': '♞', 'B_B': '♝', 'B_Q': '♛', 'B_K': '♚', 'B_P': '♟'
 };
 
-// Matriz do Tabuleiro Inicial (Linha, Coluna)
+// Matriz do Tabuleiro Inicial
 let board = [
     ['B_R', 'B_N', 'B_B', 'B_Q', 'B_K', 'B_B', 'B_N', 'B_R'],
     ['B_P', 'B_P', 'B_P', 'B_P', 'B_P', 'B_P', 'B_P', 'B_P'],
@@ -31,93 +32,188 @@ let board = [
 function drawBoard() {
     for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize; c++) {
-            // Alterna cores das casas (Clara / Escura)
             ctx.fillStyle = (r + c) % 2 === 0 ? '#eeeed2' : '#769656';
             ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
 
-            // Destaca visualmente a peça selecionada
             if (selectedPiece && selectedPiece.r === r && selectedPiece.c === c) {
                 ctx.fillStyle = 'rgba(255, 235, 59, 0.5)';
                 ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
             }
 
-            // Renderiza o caractere Unicode da Peça se a casa não estiver vazia
             const piece = board[r][c];
             if (piece) {
-                ctx.fillStyle = piece.startsWith('W') ? '#ffffff' : '#000000';
-                
-                // Aplica contorno sutil nas peças pretas para destacar no fundo verde escuro
-                if (piece.startsWith('B')) {
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 1;
-                    ctx.font = '42px sans-serif';
-                    ctx.strokeText(piecesSymbols[piece], c * tileSize + 8, r * tileSize + 44);
-                }
+                ctx.font = '46px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
 
-                ctx.font = '42px sans-serif';
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'alpha';
-                ctx.fillText(piecesSymbols[piece], c * tileSize + 8, r * tileSize + 44);
+                const posX = c * tileSize + tileSize / 2;
+                const posY = r * tileSize + tileSize / 2;
+
+                if (piece.startsWith('B')) {
+                    ctx.fillStyle = '#000000';
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeText(piecesSymbols[piece], posX, posY);
+                } else {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeText(piecesSymbols[piece], posX, posY);
+                }
+                ctx.fillText(piecesSymbols[piece], posX, posY);
             }
         }
     }
 }
 
-// --- REGRAS BÁSICAS DE MOVIMENTAÇÃO (Simplificada para Escopo Escolar) ---
-function isValidMove(fromR, fromC, toR, toC, piece) {
+// --- FUNÇÃO AUXILIAR: VERIFICA CAMINHO LIVRE ---
+function isPathClear(fromR, fromC, toR, toC, currentBoard = board) {
+    const stepR = Math.sign(toR - fromR);
+    const stepC = Math.sign(toC - fromC);
+    
+    let currentR = fromR + stepR;
+    let currentC = fromC + stepC;
+
+    while (currentR !== toR || currentC !== toC) {
+        if (currentBoard[currentR][currentC] !== '') {
+            return false;
+        }
+        currentR += stepR;
+        currentC += stepC;
+    }
+    return true;
+}
+
+// --- REGRAS BÁSICAS DE MOVIMENTAÇÃO (Suporta tabuleiros simulados) ---
+function isValidMove(fromR, fromC, toR, toC, piece, currentBoard = board) {
     const color = piece.split('_')[0];
     const type = piece.split('_')[1];
-    const target = board[toR][toC];
+    const target = currentBoard[toR][toC];
 
-    // Impedir de capturar uma peça da mesma cor
     if (target && target.startsWith(color)) return false;
 
     const dr = toR - fromR;
     const dc = toC - fromC;
 
     switch (type) {
-        case 'P': // Peão (Movimento básico para frente)
+        case 'P': 
             const direction = color === 'W' ? -1 : 1;
-            // Avanço simples de 1 casa vazia
             if (dc === 0 && dr === direction && !target) return true;
-            // Avanço duplo inicial
-            if (dc === 0 && dr === 2 * direction && ((color === 'W' && fromR === 6) || (color === 'B' && fromR === 1)) && !target) return true;
-            // Captura diagonal
+            if (dc === 0 && dr === 2 * direction && ((color === 'W' && fromR === 6) || (color === 'B' && fromR === 1)) && !target) {
+                return currentBoard[fromR + direction][fromC] === '';
+            }
             if (Math.abs(dc) === 1 && dr === direction && target) return true;
             return false;
 
-        case 'R': // Torre (Linhas retas)
-            return (dr === 0 || dc === 0);
+        case 'R': 
+            if (dr === 0 || dc === 0) return isPathClear(fromR, fromC, toR, toC, currentBoard);
+            return false;
 
-        case 'B': // Bispo (Diagonais)
-            return Math.abs(dr) === Math.abs(dc);
+        case 'B': 
+            if (Math.abs(dr) === Math.abs(dc)) return isPathClear(fromR, fromC, toR, toC, currentBoard);
+            return false;
 
-        case 'N': // Cavalo (Formato de L)
+        case 'N': 
             return (Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2);
 
-        case 'Q': // Rainha (Torre + Bispo)
-            return (dr === 0 || dc === 0) || Math.abs(dr) === Math.abs(dc);
+        case 'Q': 
+            if ((dr === 0 || dc === 0) || Math.abs(dr) === Math.abs(dc)) return isPathClear(fromR, fromC, toR, toC, currentBoard);
+            return false;
 
-        case 'K': // Rei (1 casa para qualquer direção)
+        case 'K': 
             return Math.abs(dr) <= 1 && Math.abs(dc) <= 1;
     }
     return false;
 }
 
+// --- ENCONTRAR O REI ---
+function findKing(color, currentBoard = board) {
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+            if (currentBoard[r][c] === `${color}_K`) {
+                return { r, c };
+            }
+        }
+    }
+    return null;
+}
+
+// --- VERIFICA SE A COR ESTÁ EM XEQUE ---
+function isInCheck(color, currentBoard = board) {
+    const kingPos = findKing(color, currentBoard);
+    if (!kingPos) return false;
+
+    const opponentColor = color === 'W' ? 'B' : 'W';
+
+    // Varre o tabuleiro procurando peças adversárias que atacam o Rei
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+            const piece = currentBoard[r][c];
+            if (piece && piece.startsWith(opponentColor)) {
+                if (isValidMove(r, c, kingPos.r, kingPos.c, piece, currentBoard)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// --- VERIFICA SE A JOGADA EVITA OU CAUSA XEQUE (SIMULAÇÃO) ---
+function eliminatesCheck(fromR, fromC, toR, toC, color) {
+    // Cria cópia profunda do tabuleiro atual para simular
+    let tempBoard = board.map(row => [...row]);
+    
+    // Executa movimento simulado
+    tempBoard[toR][toC] = tempBoard[fromR][fromC];
+    tempBoard[fromR][fromC] = '';
+
+    // Se após esse movimento o Rei ainda estiver (ou entrar) em xeque, a jogada é ilegal
+    return !isInCheck(color, tempBoard);
+}
+
+// --- VERIFICA SE É XEQUE-MATE ---
+function isCheckmate(color) {
+    if (!isInCheck(color)) return false;
+
+    // Varre todas as peças do jogador do turno atual
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+            const piece = board[r][c];
+            if (piece && piece.startsWith(color)) {
+                
+                // Varre todas as casas possíveis do tabuleiro para ver se há alguma saída
+                for (let toR = 0; toR < boardSize; toR++) {
+                    for (let toC = 0; toC < boardSize; toC++) {
+                        if (isValidMove(r, c, toR, toC, piece)) {
+                            // Se existir pelo menos uma jogada que tire o Rei do xeque, não é mate
+                            if (eliminatesCheck(r, c, toR, toC, color)) {
+                                return false; 
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+    return true; // Nenhuma jogada legal pôde salvar o Rei
+}
+
 // --- CAPTURA DE INTERAÇÕES (CLIQUE) ---
 canvas.addEventListener('click', (event) => {
+    if (isGameOver) return;
+
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    // Converte os pixels clicados em Índices da Matriz [Linha][Coluna]
     const c = Math.floor(x / tileSize);
     const r = Math.floor(y / tileSize);
 
     const clickedPiece = board[r][c];
 
     if (selectedPiece === null) {
-        // Primeira fase: Selecionar a peça do jogador do turno atual
         if (clickedPiece && clickedPiece.startsWith(currentTurn)) {
             selectedPiece = { r, c };
             logBox.innerText = `Peça selecionada. Escolha a casa de destino.`;
@@ -125,27 +221,48 @@ canvas.addEventListener('click', (event) => {
             logBox.innerText = `Não é sua vez ou a casa está vazia!`;
         }
     } else {
-        // Segunda fase: Mover a peça selecionada para o local escolhido
         const fromPiece = board[selectedPiece.r][selectedPiece.c];
 
-        if (isValidMove(selectedPiece.r, selectedPiece.c, r, c, fromPiece)) {
-            // Executa o movimento alterando a matriz de dados
+        if (clickedPiece && clickedPiece.startsWith(currentTurn)) {
+            selectedPiece = { r, c };
+            logBox.innerText = `Seleção alterada. Escolha o novo destino.`;
+            drawBoard();
+            return;
+        }
+
+        // Validação dupla: movimento mecânico válido E se resolve/não causa xeque próprio
+        if (isValidMove(selectedPiece.r, selectedPiece.c, r, c, fromPiece) && eliminatesCheck(selectedPiece.r, selectedPiece.c, r, c, currentTurn)) {
             board[r][c] = fromPiece;
             board[selectedPiece.r][selectedPiece.c] = '';
 
-            // Inverte o turno do jogo
-            currentTurn = currentTurn === 'W' ? 'B' : 'W';
-            turnVal.innerText = currentTurn === 'W' ? 'Brancas' : 'Pretas';
-            logBox.innerText = `Movimento realizado com sucesso!`;
+            // Próximo turno provisório para checar as condições do oponente
+            const nextTurn = currentTurn === 'W' ? 'B' : 'W';
+
+            if (isCheckmate(nextTurn)) {
+                logBox.innerHTML = `<strong style="color: #ff3333;">XEQUE-MATE! Fim de jogo. Vitória das ${currentTurn === 'W' ? 'Brancas' : 'Pretas'}.</strong>`;
+                turnVal.innerText = "Fim de Jogo";
+                isGameOver = true;
+            } else if (isInCheck(nextTurn)) {
+                logBox.innerHTML = `<span style="color: #ffaa00; font-weight: bold;">Atenção: Rei em XEQUE!</span>`;
+                currentTurn = nextTurn;
+                turnVal.innerText = currentTurn === 'W' ? 'Brancas' : 'Pretas';
+            } else {
+                logBox.innerText = `Movimento realizado com sucesso!`;
+                currentTurn = nextTurn;
+                turnVal.innerText = currentTurn === 'W' ? 'Brancas' : 'Pretas';
+            }
+
+            selectedPiece = null;
         } else {
-            logBox.innerText = `Movimento inválido! Seleção cancelada.`;
+            if (isInCheck(currentTurn)) {
+                logBox.innerText = `Movimento inválido! Seu rei está em Xeque, você precisa defendê-lo.`;
+            } else {
+                logBox.innerText = `Movimento inválido ou colocaria seu próprio rei em Xeque!`;
+            }
         }
-        
-        selectedPiece = null; // Limpa a seleção para a próxima jogada
     }
 
-    drawBoard(); // Redesenha a tela atualizada
+    drawBoard();
 });
 
-// Inicialização Gráfica
 drawBoard();
